@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
 
@@ -8,6 +8,7 @@ const Home = () => {
 
     let [user, setUser] = useState({});
     let [getUser, setGetUser] = useState([]);
+    let [id,setId] = useState(null)
 
     let usersData = collection(db, "LoginUsers");
 
@@ -19,18 +20,37 @@ const Home = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await addDoc(usersData, { email: user.email, password: user.pass })
+        if (id === 0) {
+        await addDoc(usersData, { email: user.email, password: user.password })
         setUser({});
+        getData();
+        } else {
+            await updateDoc(doc(db, "LoginUsers", id), { email: user.email, password: user.password });
+            setUser({});
+            getData();
+            setId(null);
+        }
     }
 
     const getData = async () => {
         const getUser = await getDocs(usersData);
         setGetUser(getUser.docs.map((v) => ({ ...v.data(), id: v.id })))
     }
-    
+
     useEffect(() => {
         getData()
     }, [])
+
+    const deleteUser = async (id) => {
+        const deleteData = doc(db,"LoginUsers",id);
+        await deleteDoc(deleteData);
+        getData()
+    }
+
+    const editUser = async (v) => {
+        setUser({email : v.email,password:v.password});
+        setId(v.id);
+    }
 
     return (
         <>
@@ -42,9 +62,9 @@ const Home = () => {
                 </div>
                 <div>
                     <label htmlFor="">Password :- </label>
-                    <input type="text" name="pass" value={user.pass ? user.pass : ""} placeholder="Enter Your Password" onChange={(e) => getValue(e)} />
+                    <input type="text" name="password" value={user.password ? user.password : ""} placeholder="Enter Your Password" onChange={(e) => getValue(e)} />
                 </div>
-                <button type="submit">Submit</button>
+                <button type="submit">{id ? "Edit": "Submit"}</button>
             </form>
             <br />
             <section>
@@ -53,6 +73,8 @@ const Home = () => {
                         <>
                             <h2>Email :- {v.email}</h2>
                             <p>Password :- {v.password}</p>
+                            <button onClick={()=>deleteUser(v.id)}>Delete</button>
+                            <button onClick={()=>editUser(v)}>Edit</button>
                         </>
                     )
                 })}
