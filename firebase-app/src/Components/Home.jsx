@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { addDoc, collection, getDocs } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { db } from "../firebase";
 
 
 
 const Home = () => {
 
     let [user, setUser] = useState({});
+    let [getUser, setGetUser] = useState([]);
+
+    let usersData = collection(db, "LoginUsers");
 
     const getValue = (e) => {
         let name = e.target.name;
@@ -12,13 +17,24 @@ const Home = () => {
         setUser({ ...user, [name]: value });
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log(user)
+        await addDoc(usersData, { email: user.email, password: user.pass })
+        setUser({});
     }
+
+    const getData = async () => {
+        const getUser = await getDocs(usersData);
+        setGetUser(getUser.docs.map((v) => ({ ...v.data(), id: v.id })))
+    }
+    
+    useEffect(() => {
+        getData()
+    }, [])
 
     return (
         <>
+            <br />
             <form onSubmit={(e) => handleSubmit(e)}>
                 <div>
                     <label htmlFor="">Email :- </label>
@@ -30,6 +46,17 @@ const Home = () => {
                 </div>
                 <button type="submit">Submit</button>
             </form>
+            <br />
+            <section>
+                {getUser.map((v) => {
+                    return (
+                        <>
+                            <h2>Email :- {v.email}</h2>
+                            <p>Password :- {v.password}</p>
+                        </>
+                    )
+                })}
+            </section>
         </>
     )
 }
